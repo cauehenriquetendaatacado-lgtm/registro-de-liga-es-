@@ -1,0 +1,13 @@
+# IPs dos telefones Yealink (um por linha, com o nome depois do IP).
+# Linhas começando com # são ignoradas.
+10.1.99.91  Telefone 1
+10.1.99.89  Telefone 2
+10.1.99.56  Telefone 3
+10.1.99.63  Telefone 4
+10.1.99.75  Telefone 5
+10.1.99.79  Telefone 6
+10.1.99.80  Telefone 7
+10.1.99.68  Telefone 8
+10.1.99.84  Telefone 9
+10.1.99.88  Telefone 10
+10.1.99.78  Telefone 11
