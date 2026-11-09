@@ -1,0 +1,14 @@
+# Opcional: "Blueprint" do Render. Com este arquivo, New > Blueprint já cria o serviço configurado.
+services:
+  - type: web
+    name: ligacoes-yealink
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /saude
+    envVars:
+      - key: DATABASE_URL
+        sync: false        # cole a Connection String do Supabase (Session pooler)
+      - key: TOKEN
+        sync: false        # defina a senha de acesso
