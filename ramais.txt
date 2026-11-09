@@ -1,0 +1,14 @@
+# Ramais do 3CX (um por linha, com o nome depois do ramal).
+# Linhas começando com # são ignoradas. Se este arquivo ficar vazio, aparecem todos os ramais.
+20036  Cauê (Gerente)
+39001  PA01 Sala de Monitoramento
+39002  PA02 Sala de Monitoramento
+39003  PA03 Sala de Monitoramento
+39004  PA04 Sala de Monitoramento
+39005  PA05 Sala de Monitoramento
+39006  PA06 Sala de Monitoramento
+39007  PA07 Sala de Monitoramento
+39008  PA08 Sala de Monitoramento
+39009  PA09 Sala de Monitoramento
+39010  PA10 Sala de Monitoramento
+39011  PA11 Sala de Monitoramento
