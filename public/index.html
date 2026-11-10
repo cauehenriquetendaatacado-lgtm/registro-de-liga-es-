@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Painel de chamadas</title>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef1f4;--card:#fff;--tx:#17212b;--mut:#66727f;--bd:#d8dee5;--ac:#1f5eff;--pend:#c2410c}
+@media(prefers-color-scheme:dark){:root{--bg:#10151b;--card:#18202a;--tx:#e8edf2;--mut:#93a0ad;--bd:#2a3541;--ac:#6d96ff;--pend:#fb923c}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 Figtree,system-ui,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:24px 16px}
+h1{font-size:22px;margin:0 0 16px}
+#chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.chip{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:999px;padding:8px 14px;cursor:pointer;font:inherit}
+.chip b{margin-left:6px}.chip.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.tw{overflow-x:auto;background:var(--card);border:1px solid var(--bd);border-radius:10px}
+table{width:100%;border-collapse:collapse;min-width:640px}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--bd)}
+th{color:var(--mut);font-weight:600;font-size:13px}tr:last-child td{border:0}
+.pend{color:var(--pend);font-weight:600}.vazio{padding:28px;text-align:center;color:var(--mut)}
+tr.novo{animation:f 2s}@keyframes f{from{background:color-mix(in srgb,var(--ac) 25%,transparent)}}
+#st{color:var(--mut);font-size:13px;margin-left:8px}
+</style></head><body><main>
+<h1>Chamadas <span id="st">conectando…</span></h1>
+<div id="chips"></div>
+<div class="tw"><table><thead><tr><th>Data</th><th>Atendente</th><th>Número</th><th>Qualificação</th><th>Observação</th></tr></thead><tbody id="rows"></tbody></table></div>
+</main>
+<script>
+let token=localStorage.getItem('tk')||prompt('Senha do painel:');localStorage.setItem('tk',token||'');
+const H={'x-token':token};let lista=[],filtro='todas';
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const dur=s=>s==null?'':Math.floor(s/60)+'min '+String(s%60).padStart(2,'0')+'s';
+function desenhar(novoId){
+  const cont={};lista.forEach(c=>{const k=c.qualificacao||'Pendente';cont[k]=(cont[k]||0)+1});
+  $('#chips').innerHTML=['todas',...Object.keys(cont)].map(k=>`<button class="chip ${k===filtro?'on':''}" data-k="${esc(k)}">${k==='todas'?'Todas':esc(k)}<b>${k==='todas'?lista.length:cont[k]}</b></button>`).join('');
+  const vis=lista.filter(c=>filtro==='todas'||(c.qualificacao||'Pendente')===filtro);
+  $('#rows').innerHTML=vis.length?vis.map(c=>`<tr class="${c.id===novoId?'novo':''}"><td>${new Date(c.data).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})}</td><td>${esc(c.atendente)}</td><td>${esc(c.numero)}</td><td class="${c.qualificacao?'':'pend'}">${esc(c.qualificacao||'Pendente')}</td><td>${esc(c.observacao)}</td></tr>`).join(''):'<tr><td colspan="5" class="vazio">Nenhuma chamada ainda. Elas aparecem aqui assim que o atendente qualificar.</td></tr>';
+}
+$('#chips').onclick=e=>{const b=e.target.closest('.chip');if(b){filtro=b.dataset.k;desenhar()}};
+fetch('/api/chamadas',{headers:H}).then(r=>r.ok?r.json():Promise.reject()).then(d=>{lista=d;desenhar()}).catch(()=>{$('#st').textContent='senha incorreta';localStorage.removeItem('tk')});
+function ws(){const w=new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host);
+  w.onopen=()=>$('#st').textContent='ao vivo';w.onclose=()=>{$('#st').textContent='reconectando…';setTimeout(ws,2000)};
+  w.onmessage=e=>{const c=JSON.parse(e.data),i=lista.findIndex(x=>x.id===c.id);i<0?lista.unshift(c):lista[i]=c;desenhar(c.id)}}
+ws();
+</script></body></html>
