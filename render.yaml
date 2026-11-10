@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: ligacoes
+    runtime: static
+    buildCommand: sh build.sh
+    staticPublishPath: ./public
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+    headers:
+      - path: /sw.js
+        name: Cache-Control
+        value: no-cache
+      - path: /manifest.webmanifest
+        name: Cache-Control
+        value: no-cache

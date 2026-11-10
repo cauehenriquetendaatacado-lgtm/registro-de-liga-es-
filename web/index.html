@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16a34a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ligações">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>Ligações</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <!-- login (só aparece quando o Supabase está configurado) -->
+  <section id="login" class="hide">
+    <div class="card login">
+      <h1>Ligações</h1>
+      <form id="loginForm">
+        <label for="email">E-mail</label>
+        <input id="email" type="email" autocomplete="username" required>
+        <label for="pass">Senha</label>
+        <input id="pass" type="password" autocomplete="current-password" required>
+        <button class="call" type="submit">Entrar</button>
+        <div class="err" id="loginErr" role="alert"></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- discador -->
+  <section id="main" class="hide">
+    <h1 style="text-align:center">Ligações</h1>
+    <div class="card dial">
+      <div id="idle">
+        <input id="name" placeholder="Nome do contato (opcional)" autocomplete="off">
+        <input id="num" inputmode="tel" placeholder="Número" autocomplete="off">
+        <div class="pad" id="pad"></div>
+        <div class="row"><button class="del" id="bk" aria-label="Apagar dígito">⌫</button><button class="call" id="go">Ligar</button></div>
+        <div class="ok" id="ok" role="status"></div>
+      </div>
+      <div id="busy" class="incall hide">
+        <div class="who" id="who"></div>
+        <div class="st" id="st"></div>
+        <p class="hint">O discador do celular foi aberto. Quando desligar, volte para este app para qualificar.</p>
+        <button class="end" id="end">Já desliguei</button>
+      </div>
+      <div id="qual" class="qual hide">
+        <h2>Qualificar ligação</h2>
+        <p>Toque ou aperte 1, 2 ou 3</p>
+        <p id="qd" style="margin-top:-8px"></p>
+        <button data-k="1"><b>1</b>Sangria</button>
+        <button data-k="2"><b>2</b>Fechamento de caixa</button>
+        <button data-k="3"><b>3</b>Apoio de cópia</button>
+        <button data-k="0"><b class="zero">0</b>Não atendida</button>
+      </div>
+    </div>
+
+    <div class="card inst" id="instCard">
+      <button id="inst">Instalar atalho no celular</button>
+      <ol id="how" class="hide"></ol>
+      <button id="instDone" class="hide" style="margin-top:12px">Já instalei</button>
+    </div>
+    <div class="foot"><button id="logout">Sair</button></div>
+  </section>
+
+</div>
+
+<script src="supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+const {$,QN,clock,Store,Auth}=App;
+
+/* ----- discador: a chamada é feita pelo discador do próprio celular (link tel:) ----- */
+"123456789*0#".split("").forEach(k=>{const b=document.createElement("button");b.textContent=k;b.onclick=()=>{$("num").value+=k};$("pad").appendChild(b)});
+$("bk").onclick=()=>{$("num").value=$("num").value.slice(0,-1)};
+let cur=null,pend=null;
+function dialTo(num){
+  const a=document.createElement("a");
+  a.href="tel:"+num.replace(/[^\d+*#,;]/g,"");
+  document.body.appendChild(a);a.click();a.remove();
+}
+$("go").onclick=()=>{
+  const num=$("num").value.trim();if(!num){$("num").focus();return}
+  $("ok").textContent="";$("ok").classList.remove("warn");
+  cur={name:$("name").value.trim(),num,start:Date.now(),left:null,back:null};
+  $("idle").classList.add("hide");$("busy").classList.remove("hide");
+  $("who").textContent=cur.name||cur.num;$("st").textContent="Ligando…";
+  dialTo(num);
+};
+/* duração = tempo em que o app ficou em segundo plano (inclui o tempo chamando) */
+function finishCall(){
+  if(!cur)return;
+  const dur=cur.left?Math.round(((cur.back||Date.now())-cur.left)/1000):0;
+  const c={id:Date.now(),name:cur.name,num:cur.num,at:cur.start,dur,ok:dur>0};
+  cur=null;pend=c;
+  $("busy").classList.add("hide");
+  $("qd").textContent=dur?"Duração: "+clock(dur):"";
+  $("qual").classList.remove("hide");
+}
+$("end").onclick=finishCall;
+document.addEventListener("visibilitychange",()=>{
+  if(!cur)return;
+  if(document.hidden){if(!cur.left)cur.left=Date.now()}
+  else if(cur.left){cur.back=Date.now();finishCall()}
+});
+async function qualify(k){
+  if(!pend)return;const c=pend;pend=null;
+  if(k===0){c.ok=false;c.dur=0}else c.qual=k;
+  $("num").value="";$("name").value="";
+  $("qual").classList.add("hide");$("idle").classList.remove("hide");
+  const where=await Store.save(c);
+  const q=k?" · "+QN[k]:"";
+  $("ok").classList.toggle("warn",where!=="cloud");
+  $("ok").textContent=
+    where==="cloud"?"✓ Ligação registrada"+q:
+    where==="queue"?"✓ Guardada no aparelho"+q+". Será enviada quando houver conexão.":
+    "✓ Registrada só neste aparelho"+q+" (Supabase não configurado).";
+}
+document.querySelectorAll("#qual button").forEach(b=>b.onclick=()=>qualify(+b.dataset.k));
+addEventListener("keydown",e=>{if(pend&&(QN[e.key]||e.key==="0"))qualify(+e.key)});
+
+/* ----- instalar atalho: o botão some só depois de instalar ----- */
+let dip=null;
+addEventListener("beforeinstallprompt",e=>{e.preventDefault();dip=e});
+const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+const instKey="ligInstalled";
+const hideInst=()=>{$("instCard").classList.add("hide");try{localStorage.setItem(instKey,"1")}catch(e){}};
+let wasInst=false;try{wasInst=localStorage.getItem(instKey)==="1"}catch(e){}
+if(standalone||wasInst)$("instCard").classList.add("hide");
+addEventListener("appinstalled",hideInst);
+const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+$("how").innerHTML=ios
+  ?"<li>Abra esta página no <b>Safari</b>.</li><li>Toque em <b>Compartilhar</b> (quadrado com seta).</li><li>Escolha <b>Adicionar à Tela de Início</b>.</li><li>Toque em <b>Adicionar</b>.</li>"
+  :"<li>Abra esta página no <b>Chrome</b>.</li><li>Toque nos <b>três pontos</b> no canto superior.</li><li>Escolha <b>Instalar app</b> (ou <b>Adicionar à tela inicial</b>).</li><li>Confirme.</li>";
+$("inst").onclick=async()=>{
+  if(dip){dip.prompt();let r=null;try{r=await dip.userChoice}catch(e){}dip=null;if(r&&r.outcome==="accepted")hideInst();return}
+  $("how").classList.remove("hide");$("instDone").classList.remove("hide");
+};
+$("instDone").onclick=hideInst;
+
+Auth.start(()=>Store.flush());
+addEventListener("online",()=>Store.flush());
+</script>
+</body>
+</html>

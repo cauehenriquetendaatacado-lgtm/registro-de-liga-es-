@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16a34a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Dashboard">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>Dashboard de Ligações</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <section id="login" class="hide">
+    <div class="card login">
+      <h1>Dashboard de Ligações</h1>
+      <form id="loginForm">
+        <label for="email">E-mail</label>
+        <input id="email" type="email" autocomplete="username" required>
+        <label for="pass">Senha</label>
+        <input id="pass" type="password" autocomplete="current-password" required>
+        <button class="call" type="submit">Entrar</button>
+        <div class="err" id="loginErr" role="alert"></div>
+      </form>
+    </div>
+  </section>
+
+  <section id="main" class="hide">
+    <div class="top">
+      <h1>Dashboard de Ligações</h1>
+      <nav><a href="index.html">Abrir discador</a><button id="logout">Sair</button></nav>
+    </div>
+    <div class="kpis">
+      <div class="card kpi"><small>Total de ligações</small><b id="k1">0</b></div>
+      <div class="card kpi"><small>Atendidas</small><b id="k2">0</b></div>
+      <div class="card kpi"><small>Tempo total</small><b id="k3">0s</b></div>
+      <div class="card kpi"><small>Duração média</small><b id="k4">0s</b></div>
+    </div>
+    <div class="card"><small style="color:var(--mut)">Ligações nos últimos 7 dias</small><div class="chart" id="chart"></div></div>
+    <div class="kpis" id="qk" style="margin-top:12px"></div>
+    <div class="tools"><input id="q" placeholder="Buscar nome ou número"><button id="csv">Exportar CSV</button></div>
+    <div class="card tw">
+      <table>
+        <thead><tr><th>Data</th><th>Contato</th><th>Número</th><th>Duração</th><th>Qualificação</th><th>Status</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="empty hide" id="emp">Nenhuma ligação registrada ainda.</div>
+    </div>
+    <div class="src" id="src"></div>
+  </section>
+
+</div>
+
+<script src="supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+const {$,QN,fmt,esc,Store,Auth,cloud}=App;
+let calls=[];
+
+function start(){
+  $("src").textContent=cloud?"Conectando…":"Dados locais deste navegador (Supabase não configurado)";
+  Store.subscribe((list,err)=>{
+    if(err){$("src").textContent="Não foi possível carregar os dados. Tentando de novo em instantes.";return}
+    calls=list;
+    $("src").textContent=cloud?"Sincronizado em tempo real":"Dados locais deste navegador (Supabase não configurado)";
+    dash();
+  });
+}
+async function delCall(id,btn){
+  if(btn.dataset.arm!=="1"){
+    btn.dataset.arm="1";btn.textContent="Apagar?";
+    setTimeout(()=>{btn.dataset.arm="";btn.textContent="✕"},3000);return;
+  }
+  try{await Store.remove(id);if(!cloud){calls=calls.filter(c=>c.id!=id);dash()}}
+  catch(e){$("src").textContent="Não foi possível apagar esta ligação."}
+}
+window.delCall=delCall;
+
+function dash(){
+  const ok=calls.filter(c=>c.ok),tot=ok.reduce((a,c)=>a+c.dur,0);
+  $("k1").textContent=calls.length;$("k2").textContent=ok.length;$("k3").textContent=fmt(tot);$("k4").textContent=ok.length?fmt(tot/ok.length):"0s";
+  $("qk").innerHTML=[1,2,3].map(k=>`<div class="card kpi"><small>${k} · ${QN[k]}</small><b>${calls.filter(c=>c.qual==k).length}</b></div>`).join("");
+  const days=[...Array(7)].map((_,i)=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-6+i);return d});
+  const cnt=days.map(d=>calls.filter(c=>{const x=new Date(c.at);x.setHours(0,0,0,0);return +x==+d}).length),mx=Math.max(1,...cnt);
+  $("chart").innerHTML=days.map((d,i)=>`<div>${cnt[i]}<i style="height:${cnt[i]/mx*85}px"></i>${d.toLocaleDateString("pt-BR",{weekday:"short"}).replace(".","")}</div>`).join("");
+  list();
+}
+function list(){
+  const q=$("q").value.toLowerCase();
+  const r=calls.filter(c=>((c.name||"")+c.num).toLowerCase().includes(q));
+  $("emp").classList.toggle("hide",r.length>0);
+  $("rows").innerHTML=r.map(c=>`<tr><td class="n">${new Date(c.at).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"})}</td><td>${esc(c.name||"")||"—"}</td><td class="n">${esc(c.num)}</td><td class="n">${c.ok?fmt(c.dur):"—"}</td><td>${QN[c.qual]||"—"}</td><td><span class="tag ${c.ok?"":"c"}">${c.ok?"Atendida":"Não atendida"}</span></td><td><button class="x" aria-label="Apagar ligação" onclick="delCall(${c.id},this)">✕</button></td></tr>`).join("");
+}
+$("q").oninput=list;
+$("csv").onclick=()=>{
+  const l=["data;contato;numero;duracao_s;qualificacao;status",...calls.map(c=>[new Date(c.at).toLocaleString("pt-BR"),c.name||"",c.num,c.dur,QN[c.qual]||"",c.ok?"Atendida":"Não atendida"].join(";"))];
+  const blob=new Blob(["﻿"+l.join("\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="ligacoes.csv";document.body.appendChild(a);a.click();a.remove();
+};
+
+Auth.start(start);
+</script>
+</body>
+</html>
