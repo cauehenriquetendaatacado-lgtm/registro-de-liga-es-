@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#10151b"><link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png"><title>Chamadas</title>
+<style>
+:root{--bg:#10151b;--card:#18202a;--tx:#e8edf2;--mut:#93a0ad;--bd:#2a3541;--ok:#16a34a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,sans-serif;padding:env(safe-area-inset-top) 16px calc(88px + env(safe-area-inset-bottom))}
+main{max-width:480px;margin:0 auto;padding-top:16px}
+h1{font-size:20px;margin:0 0 4px}p{color:var(--mut);margin:0 0 14px}
+input,textarea{width:100%;background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:13px;font:inherit;margin-bottom:10px}
+button{font:inherit;cursor:pointer}button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #fff}
+.op{display:block;width:100%;border:0;border-radius:14px;padding:22px 16px;margin-bottom:12px;font:700 20px system-ui;color:#fff}.op:active{transform:scale(.98)}.op:disabled{opacity:.5}
+.go{background:#1f5eff;color:#fff;border:0;border-radius:10px;padding:14px;width:100%;font-weight:700}
+.sec{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:12px;width:100%;margin-bottom:10px}
+.call{background:var(--ok);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:700}
+#disp{font-size:28px;text-align:center;letter-spacing:1px}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.pad button{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:14px;padding:16px 0;font-size:24px}
+.row{display:grid;grid-template-columns:1fr 2fr;gap:10px}.row .call{padding:16px;font-size:18px}
+.ct{display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid var(--bd)}.ct div{flex:1;min-width:0}.ct span{color:var(--mut)}
+.x{background:none;border:0;color:var(--mut);font-size:22px;padding:6px 10px}
+.ban{background:#1e3a8a;border-radius:12px;padding:12px 14px;margin-bottom:14px}.ban button{background:none;border:0;color:#bfdbfe;text-decoration:underline;padding:0;margin-top:4px}
+#msg{min-height:24px;margin:4px 0 12px;font-weight:600}#msg.err{color:#fb923c}#msg.ok{color:#4ade80}
+.top{display:flex;justify-content:space-between;align-items:baseline}.lk{background:none;border:0;color:var(--mut);text-decoration:underline}
+ul{list-style:none;padding:0;margin:8px 0 0}li{display:flex;justify-content:space-between;gap:8px;padding:10px 0;border-top:1px solid var(--bd);color:var(--mut)}li b{color:var(--tx)}
+nav{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(3,1fr);background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom)}
+nav button{background:none;border:0;color:var(--mut);padding:16px 0;font-weight:600}nav button[aria-current=true]{color:#fff;box-shadow:inset 0 3px #1f5eff}
+.tag{display:inline-block;border-radius:999px;padding:2px 10px;font-size:13px;font-weight:600;color:#fff;margin-left:8px;vertical-align:middle}.tag.p{background:#2a3541;color:#fb923c}
+.dop{padding:14px!important;font-size:16px!important;margin-bottom:8px!important}
+[hidden]{display:none!important}
+</style></head><body><main>
+<section id="cfg" hidden>
+  <h1>Primeiro acesso</h1><p>Informe seu nome e a senha fornecida pelo gestor.</p>
+  <input id="nome" placeholder="Seu nome" autocomplete="name">
+  <input id="senha" type="password" placeholder="Senha" autocomplete="current-password">
+  <button class="go" id="salvar">Entrar</button><p id="cerr" style="color:#fb923c;margin-top:10px"></p>
+</section>
+<div id="app" hidden>
+  <section id="t-dial">
+    <h1>Discar</h1><p id="quem"></p>
+    <input id="disp" type="tel" inputmode="tel" placeholder="Número" aria-label="Número para ligar">
+    <div class="pad" id="pad"></div>
+    <div class="row"><button class="sec" id="bk" style="margin:0">Apagar</button><button class="call" id="lg">Ligar</button></div>
+  </section>
+  <section id="t-cont" hidden>
+    <h1>Contatos</h1>
+    <div id="det" hidden>
+      <button class="lk" id="volta">← Voltar</button>
+      <h1 id="dn" style="margin-top:10px"></h1><p id="dnum"></p>
+      <p>Qualificação atual: <span id="dq"></span></p>
+      <button class="call" id="dlig" style="width:100%;margin-bottom:16px">Ligar</button>
+      <strong>Alterar qualificação</strong><div id="dops" style="margin:8px 0 16px"></div>
+      <strong>Histórico de ligações</strong><ul id="dh"></ul>
+    </div>
+    <input id="busca" type="search" placeholder="Buscar por nome ou número">
+    <div id="lc"></div>
+    <details id="add-d" style="margin-top:14px"><summary>Adicionar contato</summary>
+      <div style="padding-top:10px"><input id="cn" placeholder="Nome"><input id="cnum" type="tel" placeholder="Número"><select id="cq" class="sec"></select><button class="go" id="add">Salvar contato</button>
+      <button class="sec" id="imp" style="margin-top:10px" hidden>Importar do celular</button></div>
+    </details>
+    <p id="cmsg" style="margin-top:10px"></p>
+  </section>
+  <section id="t-qual" hidden>
+    <div class="top"><h1>Como foi a ligação?</h1><button class="lk" id="sair">Sair</button></div>
+    <div id="ban" class="ban" hidden></div>
+    <input id="num" type="tel" inputmode="tel" placeholder="Número (opcional)">
+    <textarea id="obs" rows="2" placeholder="Observação (opcional)"></textarea>
+    <div id="ops"></div><div id="msg" role="status"></div>
+    <strong>Enviadas hoje: <span id="n">0</span></strong><ul id="hist"></ul>
+  </section>
+  <nav><button data-a="dial">Discar</button><button data-a="cont">Contatos</button><button data-a="qual">Qualificar</button></nav>
+</div>
+<script>
+const $=s=>document.querySelector(s),L=localStorage,J=k=>JSON.parse(L.getItem(k)||'null');
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const limpa=s=>String(s||'').replace(/[^\d+*#]/g,'');
+let opcoes=J('opcoes')||[],fila=J('fila')||[],contatos=J('contatos')||[];
+let hist=(J('hist')||[]).filter(h=>new Date(h.t).toDateString()===new Date().toDateString());
+const H=()=>({'x-token':L.getItem('tk'),'Content-Type':'application/json'});
+const msg=(t,c)=>{$('#msg').textContent=t;$('#msg').className=c||''};
+function ir(a){['dial','cont','qual'].forEach(x=>{$('#t-'+x).hidden=x!==a});document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-current',b.dataset.a===a));if(a==='qual')pendencia()}
+function tela(){const ok=L.getItem('tk')&&L.getItem('nome');$('#cfg').hidden=!!ok;$('#app').hidden=!ok;
+  if(ok){$('#quem').textContent=L.getItem('nome');botoes();lista();listaContatos();carregar();enviarFila();ir($('#t-qual').hidden&&$('#t-cont').hidden?'dial':($('#t-cont').hidden?'qual':'cont'))}}
+/* ---- discador ---- */
+$('#pad').innerHTML='123456789*0#'.split('').map(k=>`<button data-k="${k}">${k}</button>`).join('');
+$('#pad').onclick=e=>{const k=e.target.dataset.k;if(k){$('#disp').value+=k;if(navigator.vibrate)navigator.vibrate(15)}};
+$('#bk').onclick=()=>{$('#disp').value=$('#disp').value.slice(0,-1)};
+function ligar(numero,nome){numero=limpa(numero);if(!numero)return;
+  L.setItem('lig',JSON.stringify({numero,nome:nome||'',t:Date.now()}));location.href='tel:'+numero}
+$('#lg').onclick=()=>{const n=$('#disp').value,c=contatos.find(x=>x.numero===limpa(n));ligar(n,c&&c.nome)};
+/* ---- contatos ---- */
+function listaContatos(){const q=$('#busca').value.trim().toLowerCase(),d=q.replace(/\D/g,'');
+  const v=contatos.filter(c=>!q||c.nome.toLowerCase().includes(q)||(d&&c.numero.includes(d)));
+  $('#lc').innerHTML=v.length?v.slice(0,200).map(c=>`<div class="ct"><div data-det="${esc(c.id)}" style="cursor:pointer"><b>${esc(c.nome)}</b>${tag(c.qualificacao)}<br><span>${esc(c.numero)}</span></div><button class="call" data-n="${esc(c.numero)}" data-nm="${esc(c.nome)}">Ligar</button><button class="x" data-id="${esc(c.id)}" aria-label="Apagar ${esc(c.nome)}">×</button></div>`).join(''):'<p>Nenhum contato. Toque em "Adicionar contato" abaixo.</p>'}
+$('#busca').oninput=listaContatos;
+$('#lc').onclick=async e=>{const d=e.target.closest('[data-det]');if(d)return abrir(d.dataset.det);const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.n)return ligar(b.dataset.n,b.dataset.nm);
+  if(b.dataset.id&&confirm('Apagar este contato para todos os atendentes?')){const r=await api('DELETE','/api/contatos/'+b.dataset.id);if(r)carregarContatos()}};
+async function api(m,p,body){try{const r=await fetch(p,{method:m,headers:H(),body:body?JSON.stringify(body):undefined});if(r.status===401){sair();return null}return r.ok?await r.json():null}catch{return null}}
+async function carregarContatos(){const d=await api('GET','/api/contatos');if(d){contatos=d;L.setItem('contatos',JSON.stringify(d));listaContatos()}}
+$('#add').onclick=async()=>{const nome=$('#cn').value.trim(),numero=$('#cnum').value;
+  if(!nome||!limpa(numero)){$('#cmsg').textContent='Preencha nome e número.';return}
+  const r=await api('POST','/api/contatos',{nome,numero,qualificacao:$('#cq').value||undefined});$('#cmsg').textContent=r?'Contato salvo.':'Não foi possível salvar. Verifique a conexão.';
+  if(r){$('#cn').value='';$('#cnum').value='';$('#cq').value='';carregarContatos()}};
+if('contacts'in navigator&&navigator.contacts.select)$('#imp').hidden=false;
+$('#imp').onclick=async()=>{try{const sel=await navigator.contacts.select(['name','tel'],{multiple:true});
+  const l=sel.flatMap(c=>(c.tel||[]).map(t=>({nome:(c.name&&c.name[0])||t,numero:t})));
+  if(!l.length){$('#cmsg').textContent='Nenhum contato com telefone selecionado.';return}
+  const r=await api('POST','/api/contatos',l);$('#cmsg').textContent=r?r.total+' contato(s) importado(s).':'Falha ao importar.';carregarContatos()}catch{}};
+/* ---- qualificação ---- */
+const cores=['#b4232a','#1f5eff','#0f766e','#7c3aed','#b45309'];
+const tag=q=>q?`<span class="tag" style="background:${cores[Math.max(0,opcoes.indexOf(q))%5]}">${esc(q)}</span>`:'<span class="tag p">Sem qualificação</span>';
+/* ---- ficha do número: qualificação atual + histórico ---- */
+let atual=null;
+const fmt=d=>new Date(d).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
+function modoDet(on){$('#det').hidden=!on;['#busca','#lc','#add-d','#cmsg'].forEach(s=>$(s).hidden=on)}
+function fichaDet(){$('#dn').textContent=atual.nome;$('#dnum').textContent=atual.numero;$('#dq').innerHTML=tag(atual.qualificacao);
+  $('#dops').innerHTML=opcoes.map((o,i)=>`<button class="op dop" style="background:${cores[i%5]}" data-o="${esc(o)}">${esc(o)}${o===atual.qualificacao?' ✓':''}</button>`).join('')}
+async function abrir(id){atual=contatos.find(c=>c.id===id);if(!atual)return;modoDet(true);fichaDet();
+  $('#dh').innerHTML='<li>Carregando…</li>';const h=await api('GET','/api/contatos/'+id+'/chamadas');
+  $('#dh').innerHTML=h?(h.length?h.map(x=>`<li style="display:block"><b>${esc(x.qualificacao)}</b> <span>· ${fmt(x.data)}${x.atendente?' · '+esc(x.atendente):''}</span>${x.observacao?`<br><span>${esc(x.observacao)}</span>`:''}</li>`).join(''):'<li>Nenhuma ligação registrada ainda.</li>'):'<li>Não foi possível carregar o histórico.</li>'}
+$('#volta').onclick=()=>{atual=null;modoDet(false);listaContatos()};
+$('#dlig').onclick=()=>atual&&ligar(atual.numero,atual.nome);
+$('#dops').onclick=async e=>{const b=e.target.closest('.op');if(!b||!atual)return;
+  const r=await api('PATCH','/api/contatos/'+atual.id,{qualificacao:b.dataset.o});
+  if(r){Object.assign(atual,r);const i=contatos.findIndex(c=>c.id===atual.id);if(i>=0)contatos[i]=atual;L.setItem('contatos',JSON.stringify(contatos));fichaDet()}};
+function botoes(){$('#cq').innerHTML='<option value="">Sem qualificação</option>'+opcoes.map(o=>`<option>${esc(o)}</option>`).join('');$('#ops').innerHTML=opcoes.map((o,i)=>`<button class="op" style="background:${cores[i%5]}" data-o="${esc(o)}">${esc(o)}</button>`).join('')}
+function lista(){$('#n').textContent=hist.length;$('#hist').innerHTML=hist.slice().reverse().map(h=>`<li><span><b>${esc(h.q)}</b> ${esc(h.num||'')}</span><span>${new Date(h.t).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}${h.p?' · pendente':''}</span></li>`).join('')}
+function pendencia(){const l=J('lig');$('#ban').hidden=!l;
+  if(l){$('#ban').innerHTML=`Ligação para <b>${esc(l.nome||l.numero)}</b><br><button id="desc">Descartar</button>`;if(!$('#num').value)$('#num').value=l.numero;$('#desc').onclick=()=>{L.removeItem('lig');$('#num').value='';pendencia()}}}
+async function carregar(){const d=await api('GET','/api/opcoes');if(d){opcoes=d;L.setItem('opcoes',JSON.stringify(d));botoes()}carregarContatos()}
+async function enviar(c){const r=await fetch('/api/chamadas',{method:'POST',headers:H(),body:JSON.stringify(c)});if(r.status===401){sair();throw 0}if(r.status>=500)throw 0}
+async function enviarFila(){const resto=[];for(const c of fila){try{await enviar(c)}catch{resto.push(c)}}
+  fila=resto;L.setItem('fila',JSON.stringify(fila));carregarContatos();hist.forEach(h=>{if(h.p&&!fila.find(f=>f.uid===h.uid))h.p=0});L.setItem('hist',JSON.stringify(hist));lista()}
+$('#ops').onclick=async e=>{const b=e.target.closest('.op');if(!b)return;const l=J('lig'),numero=limpa($('#num').value)||(l&&l.numero)||'';
+  const c={uid:crypto.randomUUID(),qualificacao:b.dataset.o,numero,contato:(l&&l.numero===numero?l.nome:'')||(contatos.find(x=>x.numero===numero)||{}).nome||'',observacao:$('#obs').value.trim(),atendente:L.getItem('nome'),data:new Date().toISOString()};
+  b.disabled=true;let p=0;
+  try{await enviar(c);msg('Enviado: '+c.qualificacao,'ok');carregarContatos()}catch{if(!L.getItem('tk'))return;fila.push(c);L.setItem('fila',JSON.stringify(fila));p=1;msg('Sem conexão. Guardado no celular e será enviado depois.','err')}
+  hist.push({uid:c.uid,q:c.qualificacao,num:c.contato||c.numero,t:c.data,p});L.setItem('hist',JSON.stringify(hist));L.removeItem('lig');lista();pendencia();
+  $('#num').value='';$('#obs').value='';b.disabled=false;if(navigator.vibrate)navigator.vibrate(40)};
+/* ---- acesso ---- */
+$('#salvar').onclick=async()=>{const n=$('#nome').value.trim(),s=$('#senha').value;if(!n||!s){$('#cerr').textContent='Preencha nome e senha.';return}
+  try{const r=await fetch('/api/opcoes',{headers:{'x-token':s}});if(!r.ok){$('#cerr').textContent='Senha incorreta.';return}
+    L.setItem('tk',s);L.setItem('nome',n);opcoes=await r.json();L.setItem('opcoes',JSON.stringify(opcoes));tela()}catch{$('#cerr').textContent='Sem conexão com o servidor.'}};
+function sair(){L.removeItem('tk');tela()}$('#sair').onclick=()=>{L.removeItem('tk');L.removeItem('nome');tela()};
+document.querySelector('nav').onclick=e=>{const a=e.target.dataset.a;if(a)ir(a)};
+/* ao voltar para o app depois de uma ligação, abre a qualificação */
+document.addEventListener('visibilitychange',()=>{if(document.hidden)return;enviarFila();const l=J('lig');if(l&&Date.now()-l.t>4000&&L.getItem('tk'))ir('qual')});
+addEventListener('online',enviarFila);
+if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js');
+tela();
+</script></main></body></html>
